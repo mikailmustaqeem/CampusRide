@@ -37,7 +37,6 @@ const BookingModal = ({ ride, isOpen, onClose }) => {
             console.log('Booking response:', data);
 
             if (response.ok && data.success) {
-                // ✅ Save to sessionStorage as backup in case state gets lost
                 const paymentData = {
                     bookingId: data.bookingId,
                     totalFare: data.totalFare,
@@ -45,13 +44,25 @@ const BookingModal = ({ ride, isOpen, onClose }) => {
                     destination: ride.Destination
                 };
                 sessionStorage.setItem('pendingPayment', JSON.stringify(paymentData));
-
-                // Navigate first then close
                 navigate('/payment', { state: paymentData });
                 onClose();
+
+            } else if (data.redirectToPayment) {
+                // Already has an unpaid booking — redirect to complete payment
+                const paymentData = {
+                    bookingId: data.bookingId,
+                    totalFare: data.totalFare,
+                    source: data.source,
+                    destination: data.destination
+                };
+                sessionStorage.setItem('pendingPayment', JSON.stringify(paymentData));
+                navigate('/payment', { state: paymentData });
+                onClose();
+
             } else {
                 setError(data.message || 'Failed to book ride');
             }
+
         } catch (err) {
             console.error('Booking error:', err);
             setError('Failed to connect to server.');
