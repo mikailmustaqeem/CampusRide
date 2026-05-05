@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { NOTIFICATIONS_CHANGED_EVENT } from '../constants/events';
 
 const typeColor = (type) => {
     if (type === 'Booking') return { bg: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: 'rgba(139,92,246,0.2)' };
@@ -25,13 +26,14 @@ function Notifications() {
 
     const fetchNotifications = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/notifications', {
+            const res = await fetch('http://localhost:5001/api/notifications', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
             if (data.success) {
                 setNotifications(data.data);
                 setUnread(data.unreadCount);
+                window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT));
             }
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
@@ -39,12 +41,15 @@ function Notifications() {
 
     const markAllRead = async () => {
         try {
-            await fetch('http://localhost:5000/api/notifications/read-all', {
+            const res = await fetch('http://localhost:5001/api/notifications/read-all', {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) return;
             setNotifications(prev => prev.map(n => ({ ...n, IsRead: true })));
             setUnread(0);
+            window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT));
         } catch (e) { console.error(e); }
     };
 

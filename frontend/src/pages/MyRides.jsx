@@ -1,20 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { ConfirmModal, NoticeModal } from '../components/ThemeModals';
 
 function MyRides() {
     const [rides, setRides] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [deleteRideId, setDeleteRideId] = useState(null);
+    const [completeRideId, setCompleteRideId] = useState(null);
+    const [notice, setNotice] = useState(null);
     const token = localStorage.getItem('token');
     const navigate = useNavigate();
 
     const fetchRides = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/rides/my', {
+            const res = await fetch('http://localhost:5001/api/rides/my', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
-            if (data.success) setRides(data.data);
+            if (data.success) {
+                const list = Array.isArray(data.data) ? data.data : [];
+                setRides([...list].sort((a, b) => Number(b.RideID ?? 0) - Number(a.RideID ?? 0)));
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -24,41 +31,57 @@ function MyRides() {
 
     useEffect(() => { fetchRides(); }, []);
 
-    const handleDelete = async (rideId) => {
-        if (!window.confirm('Are you sure you want to delete this ride?')) return;
+    const handleDelete = (rideId) => setDeleteRideId(rideId);
+
+    const confirmDeleteRide = async () => {
+        const rideId = deleteRideId;
+        setDeleteRideId(null);
+        if (rideId == null) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/rides/${rideId}`, {
+            const res = await fetch(`http://localhost:5001/api/rides/${rideId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (res.ok) fetchRides();
-            else {
+            if (res.ok) {
+                fetchRides();
+                setNotice({ variant: 'success', title: 'Ride removed', message: 'The ride has been deleted.' });
+            } else {
                 const data = await res.json();
-                alert(data.message || 'Failed to delete');
+                setNotice({ variant: 'error', message: data.message || 'Failed to delete' });
             }
-        } catch (e) { console.error(e); }
-    };
-const handleComplete = async (rideId) => {
-    if (!window.confirm('Mark this ride as completed? Passengers will be notified to leave reviews.')) return;
-    
-    try {
-        const res = await fetch(`http://localhost:5000/api/rides/${rideId}/complete`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-            alert(`✅ Ride marked as completed! ${data.notificationsSent} passenger(s) notified`);
-            fetchRides(); // Refresh the list
-        } else {
-            alert(data.message || 'Failed to complete ride');
+        } catch (e) {
+            console.error(e);
+            setNotice({ variant: 'error', message: 'Could not delete ride. Try again.' });
         }
-    } catch (e) { 
-        console.error(e);
-        alert('Failed to connect to server');
-    }
-};
+    };
+
+    const handleComplete = (rideId) => setCompleteRideId(rideId);
+
+    const confirmCompleteRide = async () => {
+        const rideId = completeRideId;
+        setCompleteRideId(null);
+        if (rideId == null) return;
+        try {
+            const res = await fetch(`http://localhost:5001/api/rides/${rideId}/complete`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setNotice({
+                    variant: 'success',
+                    title: 'Ride completed',
+                    message: `${data.notificationsSent ?? 0} passenger(s) were notified to leave reviews.`,
+                });
+                fetchRides();
+            } else {
+                setNotice({ variant: 'error', message: data.message || 'Failed to complete ride' });
+            }
+        } catch (e) {
+            console.error(e);
+            setNotice({ variant: 'error', message: 'Failed to connect to server' });
+        }
+    };
     const statusColor = (status) => {
         if (status === 'Active') return { color: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)' };
         if (status === 'Full') return { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' };
@@ -86,6 +109,33 @@ const handleComplete = async (rideId) => {
                 .edit-btn:hover { background: rgba(139,92,246,0.25) !important; }
             `}</style>
             <Navbar />
+
+            <ConfirmModal
+                open={deleteRideId != null}
+                title="Delete this ride?"
+                message="Are you sure you want to delete this ride? Passengers with bookings may be affected."
+                confirmText="Delete"
+                cancelText="Cancel"
+                danger
+                onConfirm={confirmDeleteRide}
+                onCancel={() => setDeleteRideId(null)}
+            />
+            <ConfirmModal
+                open={completeRideId != null}
+                title="Mark ride completed?"
+                message="Passengers will be notified to leave reviews."
+                confirmText="Mark completed"
+                cancelText="Cancel"
+                onConfirm={confirmCompleteRide}
+                onCancel={() => setCompleteRideId(null)}
+            />
+            <NoticeModal
+                open={notice != null}
+                title={notice?.title}
+                message={notice?.message ?? ''}
+                variant={notice?.variant ?? 'info'}
+                onClose={() => setNotice(null)}
+            />
 
             <div className="fixed top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
                  style={{ background: 'rgba(124,58,237,0.06)', filter: 'blur(80px)', transform: 'translate(30%,-30%)' }} />

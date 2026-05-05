@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CheckCircle, CreditCard, Wallet, Smartphone, Banknote, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Wallet, Banknote, ArrowLeft } from 'lucide-react';
 
 const paymentMethods = [
-    { id: 'JazzCash',      label: 'JazzCash',       icon: Smartphone, color: '#EF4444', bg: '#FEF2F2' },
-    { id: 'EasyPaisa',     label: 'EasyPaisa',      icon: Smartphone, color: '#10B981', bg: '#ECFDF5' },
-    { id: 'Credit Card',   label: 'Credit Card',    icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF' },
-    { id: 'Debit Card',    label: 'Debit Card',     icon: CreditCard, color: '#8B5CF6', bg: '#F5F3FF' },
-    { id: 'In-App Wallet', label: 'In-App Wallet',  icon: Wallet,     color: '#F59E0B', bg: '#FFFBEB' },
-    { id: 'Cash',          label: 'Cash on Ride',   icon: Banknote,   color: '#6B7280', bg: '#F9FAFB' },
+    { id: 'In-App Wallet', label: 'In-App Wallet', icon: Wallet, color: '#F59E0B', bg: '#FFFBEB' },
+    { id: 'Cash', label: 'Cash on Ride', icon: Banknote, color: '#6B7280', bg: '#F9FAFB' },
 ];
 
 function Payment() {
@@ -60,7 +56,7 @@ function Payment() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/payments', {
+            const response = await fetch('http://localhost:5001/api/payments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -177,31 +173,6 @@ function Payment() {
                             </button>
                         ))}
                     </div>
-
-                    {(selectedMethod === 'Credit Card' || selectedMethod === 'Debit Card') && (
-                        <div className="bg-gray-50 rounded-2xl p-4 mb-4 space-y-3">
-                            <input placeholder="1234 5678 9012 3456" maxLength={19}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:border-purple-400" />
-                            <div className="flex gap-3">
-                                <input placeholder="MM/YY" maxLength={5}
-                                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-400" />
-                                <input placeholder="CVV" maxLength={3}
-                                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-400" />
-                            </div>
-                            <input placeholder="Cardholder Name"
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-400" />
-                        </div>
-                    )}
-
-                    {(selectedMethod === 'JazzCash' || selectedMethod === 'EasyPaisa') && (
-                        <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-                            <input placeholder="03XX-XXXXXXX" maxLength={12}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-400" />
-                            <p className="text-xs text-gray-400 mt-2">
-                                A confirmation will be sent to this number
-                            </p>
-                        </div>
-                    )}
 
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">

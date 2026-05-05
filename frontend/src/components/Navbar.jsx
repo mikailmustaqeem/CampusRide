@@ -1,6 +1,14 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, Calendar, Search, Wallet, Plus, Car, Star, Bell, LayoutDashboard } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { LogOut, User, ClipboardList, Search, Wallet, Plus, Car, Star, Bell, LayoutDashboard } from 'lucide-react';
+import { NOTIFICATIONS_CHANGED_EVENT } from '../constants/events';
+
+const navLinkClass = ({ isActive }) =>
+    `flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-xl transition-all border no-underline ${
+        isActive
+            ? 'bg-[rgba(124,58,237,0.32)] text-purple-300 border-purple-500/50 font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+            : 'text-zinc-400 border-transparent hover:text-purple-300 hover:bg-purple-900/25'
+    }`;
 
 function getNavAvatar(user) {
     const role = (user.role || '').toLowerCase();
@@ -132,11 +140,41 @@ function getNavAvatar(user) {
 }
 function Navbar() {
     const navigate = useNavigate();
+    const location = useLocation();
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const role = user.role || 'Passenger';
     const isDriver = role === 'Driver' || role === 'Both';
     const isPassenger = role === 'Passenger' || role === 'Both';
+
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+    const refreshUnreadCount = useCallback(async () => {
+        if (!token) return;
+        try {
+            const res = await fetch('http://localhost:5001/api/notifications/unread-count', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) setUnreadNotifications(Number(data.unreadCount) || 0);
+        } catch {
+            /* ignore — badge is best-effort */
+        }
+    }, [token]);
+
+    useEffect(() => {
+        refreshUnreadCount();
+    }, [location.pathname, refreshUnreadCount]);
+
+    useEffect(() => {
+        const handler = () => refreshUnreadCount();
+        window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, handler);
+        window.addEventListener('focus', handler);
+        return () => {
+            window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, handler);
+            window.removeEventListener('focus', handler);
+        };
+    }, [refreshUnreadCount]);
 
     if (!token) return null;
 
@@ -162,67 +200,66 @@ function Navbar() {
 
                 {/* Center nav — role based */}
                 <div className="flex items-center gap-1">
-                    {/* Dashboard link - everyone sees */}
-                    <Link to="/dashboard"
-                        className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                        <LayoutDashboard size={14} />
+                    <NavLink to="/dashboard" end className={navLinkClass}>
+                        <LayoutDashboard size={14} className="shrink-0 opacity-90" />
                         Dashboard
-                    </Link>
+                    </NavLink>
 
-                    {/* Driver links */}
                     {isDriver && (
                         <>
-                            <Link to="/create-ride"
-                                className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                                <Plus size={14} />
+                            <NavLink to="/create-ride" className={navLinkClass}>
+                                <Plus size={14} className="shrink-0 opacity-90" />
                                 Create Ride
-                            </Link>
-                            <Link to="/my-rides"
-                                className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                                <Car size={14} />
+                            </NavLink>
+                            <NavLink to="/my-rides" className={navLinkClass}>
+                                <Car size={14} className="shrink-0 opacity-90" />
                                 My Rides
-                            </Link>
+                            </NavLink>
                         </>
                     )}
 
-                    {/* Passenger links */}
                     {isPassenger && (
                         <>
-                            <Link to="/rides"
-                                className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                                <Search size={14} />
+                            <NavLink to="/rides" className={navLinkClass}>
+                                <Search size={14} className="shrink-0 opacity-90" />
                                 Find Rides
-                            </Link>
-                            <Link to="/my-bookings"
-                                className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                                <Calendar size={14} />
+                            </NavLink>
+                            <NavLink to="/my-bookings" className={navLinkClass}>
+                                <ClipboardList size={14} className="shrink-0 opacity-90" />
                                 My Bookings
-                            </Link>
+                            </NavLink>
                         </>
                     )}
 
-                    {/* Everyone sees these */}
-                    <Link to="/wallet"
-                        className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                        <Wallet size={14} />
+                    <NavLink to="/wallet" className={navLinkClass}>
+                        <Wallet size={14} className="shrink-0 opacity-90" />
                         Wallet
-                    </Link>
-                    <Link to="/reviews"
-                        className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20">
-                        <Star size={14} />
+                    </NavLink>
+                    <NavLink to="/reviews" className={navLinkClass}>
+                        <Star size={14} className="shrink-0 opacity-90" />
                         Reviews
-                    </Link>
+                    </NavLink>
                 </div>
 
                 {/* Right side */}
                 <div className="flex items-center gap-3">
                     {/* Notification Bell */}
-                    <Link to="/notifications"
-                        className="relative flex items-center justify-center w-8 h-8 rounded-xl text-zinc-400 hover:text-purple-300 hover:bg-purple-900/20 transition-colors">
+                    <NavLink to="/notifications"
+                        className={({ isActive }) =>
+                            `relative flex items-center justify-center w-8 h-8 rounded-xl transition-colors border ${
+                                isActive
+                                    ? 'text-purple-200 bg-[rgba(124,58,237,0.32)] border-purple-500/45'
+                                    : 'text-zinc-400 border-transparent hover:text-purple-300 hover:bg-purple-900/25'
+                            }`
+                        }>
                         <Bell size={16} />
-                        {/* Red dot — always show, will be dynamic */}
-                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-[#110d1e]" />
-                    </Link>
+                        {unreadNotifications > 0 && (
+                            <span
+                                className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-[#110d1e]"
+                                title={`${unreadNotifications} unread`}
+                            />
+                        )}
+                    </NavLink>
 
                     <div className="w-px h-4 bg-white/10" />
 <div className="flex items-center gap-2">
@@ -236,11 +273,16 @@ function Navbar() {
 
                     <div className="w-px h-4 bg-white/10" />
 
-                    <Link to="/profile"
-                        className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-purple-300 transition-colors px-3 py-1.5 rounded-xl hover:bg-purple-900/20 border border-transparent hover:border-purple-700/30">
-                        <User size={14} />
+                    <NavLink to="/profile" className={({ isActive }) =>
+                        `flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-xl transition-all border no-underline ${
+                            isActive
+                                ? 'text-purple-200 bg-[rgba(124,58,237,0.28)] border-purple-500/45 font-medium'
+                                : 'text-zinc-400 border-transparent hover:text-purple-300 hover:bg-purple-900/25 hover:border-purple-700/30'
+                        }`
+                    }>
+                        <User size={14} className="shrink-0 opacity-90" />
                         Profile
-                    </Link>
+                    </NavLink>
 
                     <button onClick={handleLogout}
                         className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-red-400 transition-colors px-3 py-1.5 rounded-xl hover:bg-red-900/10 border border-transparent hover:border-red-700/20">

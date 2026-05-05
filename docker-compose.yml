@@ -1,0 +1,16 @@
+services:
+  # Azure SQL Edge: native linux/arm64 (Apple Silicon). Full SQL Server image fails under QEMU here.
+  sqlserver:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: campusride-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "CampusRide_Dev_123!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - campusride_mssql_data:/var/opt/mssql
+    mem_limit: 2g
+
+volumes:
+  campusride_mssql_data:

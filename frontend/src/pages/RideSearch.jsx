@@ -23,7 +23,7 @@ function RideSearch() {
             if (destination) params.append('destination', destination);
             if (date) params.append('date', date);
 
-            const url = `http://localhost:5000/api/rides${params.toString() ? '?' + params.toString() : ''}`;
+            const url = `http://localhost:5001/api/rides${params.toString() ? '?' + params.toString() : ''}`;
             
             const res = await fetch(url, {
                 headers: {
@@ -33,7 +33,8 @@ function RideSearch() {
             const data = await res.json();
             
             if (data.success) {
-                setRides(data.data);
+                const list = Array.isArray(data.data) ? data.data : [];
+                setRides([...list].sort((a, b) => Number(b.RideID ?? 0) - Number(a.RideID ?? 0)));
             } else {
                 setError(data.message || data.error || 'Failed to fetch rides');
             }

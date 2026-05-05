@@ -24,7 +24,7 @@ const CreateRide = () => {
 
     const fetchVehicles = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/vehicles/my', {
+            const res = await fetch('http://localhost:5001/api/vehicles/my', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -53,7 +53,7 @@ const CreateRide = () => {
         setVehicleLoading(true);
         setVehicleError('');
         try {
-            const res = await fetch('http://localhost:5000/api/vehicles', {
+            const res = await fetch('http://localhost:5001/api/vehicles', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(vehicleForm)
@@ -78,7 +78,7 @@ const CreateRide = () => {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch('http://localhost:5000/api/rides', {
+            const res = await fetch('http://localhost:5001/api/rides', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({

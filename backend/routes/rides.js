@@ -39,6 +39,10 @@ router.get('/', async (req, res) => {
             query += " AND " + conditions.join(" AND ");
         }
 
+        query += `
+            ORDER BY r.CreatedAt DESC, r.RideID DESC
+        `;
+
         const result = await request.query(query);
         res.json({ success: true, data: result.recordset });
     } catch (error) {
@@ -62,7 +66,7 @@ router.get('/my', auth, async (req, res) => {
                 FROM Rides r
                 LEFT JOIN Vehicles v ON r.VehicleID = v.VehicleID
                 WHERE r.DriverID = @DriverID
-                ORDER BY r.DepartureTime DESC
+                ORDER BY r.CreatedAt DESC, r.RideID DESC
             `);
 
         res.json({ success: true, data: result.recordset });

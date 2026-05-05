@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { NoticeModal } from '../components/ThemeModals';
 
 function Wallet() {
     const navigate = useNavigate();
@@ -14,6 +15,7 @@ function Wallet() {
     const [adding, setAdding] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [success, setSuccess] = useState('');
+    const [notice, setNotice] = useState(null);
 
     useEffect(() => {
         fetchTransactions();
@@ -22,7 +24,7 @@ function Wallet() {
 
     const fetchTransactions = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/payments/my', {
+            const res = await fetch('http://localhost:5001/api/payments/my', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -36,7 +38,7 @@ function Wallet() {
 
     const fetchBalance = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/payments/wallet', {
+            const res = await fetch('http://localhost:5001/api/payments/wallet', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -49,13 +51,13 @@ function Wallet() {
     const handleAddMoney = async () => {
         const amount = parseInt(addAmount);
         if (!amount || amount < 100) { 
-            alert('Minimum top-up is Rs. 100'); 
+            setNotice({ variant: 'error', title: 'Invalid amount', message: 'Minimum top-up is Rs. 100' }); 
             return; 
         }
         setAdding(true);
         
         try {
-            const res = await fetch('http://localhost:5000/api/payments/wallet/topup', {
+            const res = await fetch('http://localhost:5001/api/payments/wallet/topup', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json', 
@@ -73,11 +75,11 @@ function Wallet() {
                 setTimeout(() => setSuccess(''), 3000);
                 fetchTransactions(); // refresh history
             } else {
-                alert(data.message || 'Top-up failed');
+                setNotice({ variant: 'error', message: data.message || 'Top-up failed' });
             }
         } catch (e) { 
             console.error(e); 
-            alert('Failed to add money. Please try again.');
+            setNotice({ variant: 'error', message: 'Failed to add money. Please try again.' });
         } finally { 
             setAdding(false); 
         }
@@ -90,6 +92,13 @@ function Wallet() {
              style={{ fontFamily: "'Sora', sans-serif" }}>
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');`}</style>
             <Navbar />
+            <NoticeModal
+                open={notice != null}
+                title={notice?.title}
+                message={notice?.message ?? ''}
+                variant={notice?.variant ?? 'info'}
+                onClose={() => setNotice(null)}
+            />
 
             <div className="max-w-2xl mx-auto px-6 pt-12 pb-20">
 

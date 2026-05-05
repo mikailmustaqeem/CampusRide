@@ -10,6 +10,7 @@ import Payment from './pages/Payment';
 import Wallet from './pages/Wallet';
 import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
+import { ReviewPromptHost } from './components/ReviewPromptHost';
 
 // Aliza's pages
 import CreateRide from './pages/CreateRide';
@@ -23,6 +24,7 @@ import RideDetails from './pages/RideDetails';
 function App() {
   return (
     <BrowserRouter>
+      <ReviewPromptHost />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Welcome />} />

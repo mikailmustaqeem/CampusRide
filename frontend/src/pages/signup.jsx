@@ -1,15 +1,18 @@
 // frontend/src/pages/Signup.jsx
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { User, Mail, Lock, Phone, ArrowRight } from 'lucide-react';
 import { Link,useNavigate } from 'react-router-dom';
+import { NoticeModal } from '../components/ThemeModals';
 
 function Signup() {
     const navigate = useNavigate(); 
     const { register, handleSubmit, formState: { errors } } = useForm();
+    const [notice, setNotice] = useState(null);
 
     const onSubmit = async (data) => {
     try {
-        const response = await fetch('http://localhost:5000/api/auth/signup', {
+        const response = await fetch('http://localhost:5001/api/auth/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -21,20 +24,35 @@ function Signup() {
             // Save token and user
             localStorage.setItem("token", result.token);
             localStorage.setItem("user", JSON.stringify(result.user));
-            alert('Account created!');
-            navigate('/dashboard');  
+            setNotice({
+                variant: 'success',
+                title: 'Account created',
+                message: 'Welcome to CampusRide. You can start booking rides.',
+                navigateTo: '/dashboard',  
+            });
         } else {
-            alert(result.message || 'Signup failed');
+            setNotice({ variant: 'error', message: result.message || 'Signup failed' });
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to connect to server');
+        setNotice({ variant: 'error', message: 'Failed to connect to server' });
     }
 };
 
     return (
         <div className="flex min-h-screen bg-[#0e0c15]">
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap'); body { font-family: 'Sora', sans-serif; }`}</style>
+            <NoticeModal
+                open={notice != null}
+                title={notice?.title}
+                message={notice?.message ?? ''}
+                variant={notice?.variant ?? 'info'}
+                onClose={() => {
+                    const to = notice?.navigateTo;
+                    setNotice(null);
+                    if (to) navigate(to);
+                }}
+            />
 
             {/* LEFT PANEL */}
             <div className="w-1/2 flex flex-col justify-center px-16 py-20 relative overflow-hidden">

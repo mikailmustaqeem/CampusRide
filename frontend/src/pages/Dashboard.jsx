@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { Car, Wallet, Star, Search, ClipboardList, CirclePlus } from 'lucide-react';
 
 function Dashboard() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -20,7 +21,7 @@ function Dashboard() {
             try {
                 // Fetch bookings (passenger stats)
                 if (isPassenger) {
-                    const res = await fetch('http://localhost:5000/api/bookings/my', {
+                    const res = await fetch('http://localhost:5001/api/bookings/my', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await res.json();
@@ -39,7 +40,7 @@ function Dashboard() {
 
                 // Fetch driver rides
                 if (isDriver) {
-                    const res = await fetch('http://localhost:5000/api/rides/my', {
+                    const res = await fetch('http://localhost:5001/api/rides/my', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await res.json();
@@ -72,24 +73,24 @@ function Dashboard() {
     const driverStatCards = [
         { label: 'Total Rides Posted', value: driverStats.totalRides, color: '#a78bfa', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)' },
         { label: 'Active Rides', value: driverStats.activeRides, color: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)' },
-        { label: 'Your Rating', value: `★ ${user.rating || 'N/A'}`, color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' },
+        { label: 'Your Rating', value: user.rating ?? 'N/A', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)', StatIcon: Star },
         { label: 'Est. Earned', value: `Rs. ${driverStats.totalEarned.toFixed(0)}`, color: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)' },
     ];
 
     const statCards = isDriver ? driverStatCards : passengerStatCards;
 
     const driverActions = [
-        { label: 'Create Ride', desc: 'Post a new ride offer', icon: '🚗', path: '/create-ride', color: '#7C3AED' },
-        { label: 'My Rides', desc: 'Manage your rides', icon: '📍', path: '/my-rides', color: '#0891B2' },
-        { label: 'My Wallet', desc: 'Manage your balance', icon: '👛', path: '/wallet', color: '#059669' },
-        { label: 'Reviews', desc: 'See your ratings', icon: '⭐', path: '/reviews', color: '#D97706' },
+        { label: 'Create Ride', desc: 'Post a new ride offer', Icon: CirclePlus, path: '/create-ride', color: '#7C3AED' },
+        { label: 'My Rides', desc: 'Manage your rides', Icon: Car, path: '/my-rides', color: '#0891B2' },
+        { label: 'My Wallet', desc: 'Manage your balance', Icon: Wallet, path: '/wallet', color: '#059669' },
+        { label: 'Reviews', desc: 'See your ratings', Icon: Star, path: '/reviews', color: '#D97706' },
     ];
 
     const passengerActions = [
-        { label: 'Find a Ride', desc: 'Search available rides', icon: '🔍', path: '/rides', color: '#7C3AED' },
-        { label: 'My Bookings', desc: 'View booking history', icon: '📋', path: '/my-bookings', color: '#0891B2' },
-        { label: 'My Wallet', desc: 'Manage your balance', icon: '👛', path: '/wallet', color: '#059669' },
-        { label: 'Reviews', desc: 'Rate your drivers', icon: '⭐', path: '/reviews', color: '#D97706' },
+        { label: 'Find a Ride', desc: 'Search available rides', Icon: Search, path: '/rides', color: '#7C3AED' },
+        { label: 'My Bookings', desc: 'View booking history', Icon: ClipboardList, path: '/my-bookings', color: '#0891B2' },
+        { label: 'My Wallet', desc: 'Manage your balance', Icon: Wallet, path: '/wallet', color: '#059669' },
+        { label: 'Reviews', desc: 'Rate your drivers', Icon: Star, path: '/reviews', color: '#D97706' },
     ];
 
     const quickActions = isDriver ? driverActions : passengerActions;
@@ -140,11 +141,16 @@ function Dashboard() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-                    {statCards.map(({ label, value, color, bg, border }) => (
+                    {statCards.map(({ label, value, color, bg, border, StatIcon }) => (
                         <div key={label} className="rounded-2xl p-5"
                              style={{ background: bg, border: `1px solid ${border}` }}>
                             <p className="text-xs font-medium mb-2" style={{ color, opacity: 0.8 }}>{label}</p>
-                            <p className="text-2xl font-bold" style={{ color }}>
+                            <p className="text-2xl font-bold flex items-center gap-2" style={{ color }}>
+                                {StatIcon && !loading && (
+                                    <span className="inline-flex shrink-0" style={{ color }} aria-hidden>
+                                        <StatIcon size={22} strokeWidth={2} />
+                                    </span>
+                                )}
                                 {loading ? '—' : value}
                             </p>
                         </div>
@@ -155,11 +161,21 @@ function Dashboard() {
                 <div className="mb-10">
                     <h2 className="text-lg font-semibold text-zinc-300 mb-4">Quick actions</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {quickActions.map(({ label, desc, icon, path }) => (
+                        {quickActions.map(({ label, desc, Icon, path, color }) => (
                             <button key={path} onClick={() => navigate(path)}
                                 className="rounded-2xl p-5 text-left transition-all hover:scale-105 active:scale-95"
                                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                <div className="text-2xl mb-3">{icon}</div>
+                                <div
+                                    className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl"
+                                    style={{
+                                        background: `${color}18`,
+                                        border: `1px solid ${color}33`,
+                                        color,
+                                    }}
+                                    aria-hidden
+                                >
+                                    <Icon size={22} strokeWidth={2} />
+                                </div>
                                 <p className="text-sm font-semibold text-white mb-1">{label}</p>
                                 <p className="text-xs text-zinc-500">{desc}</p>
                             </button>

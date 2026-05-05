@@ -1,17 +1,20 @@
 ﻿import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { ConfirmModal, NoticeModal } from '../components/ThemeModals';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [payments, setPayments] = useState({});
     const [loading, setLoading] = useState(true);
+    const [cancelBookingId, setCancelBookingId] = useState(null);
+    const [notice, setNotice] = useState(null);
     const token = localStorage.getItem('token');
     const navigate = useNavigate();
 
     const fetchBookings = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/bookings/my', {
+            const response = await fetch('http://localhost:5001/api/bookings/my', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -22,7 +25,7 @@ const MyBookings = () => {
             const paymentMap = {};
             await Promise.all(bookingList.map(async (b) => {
                 try {
-                    const res = await fetch(`http://localhost:5000/api/payments/booking/${b.BookingID}`, {
+                    const res = await fetch(`http://localhost:5001/api/payments/booking/${b.BookingID}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const pData = await res.json();
@@ -44,15 +47,29 @@ const MyBookings = () => {
     useEffect(() => { fetchBookings(); }, []);
 
     const handleCancel = async (bookingId) => {
-        if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+        setCancelBookingId(bookingId);
+    };
+
+    const confirmCancelBooking = async () => {
+        const bookingId = cancelBookingId;
+        setCancelBookingId(null);
+        if (bookingId == null) return;
         try {
-            const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+            const response = await fetch(`http://localhost:5001/api/bookings/${bookingId}/cancel`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (response.ok) fetchBookings();
-            else { const data = await response.json(); alert(data.message || 'Failed to cancel'); }
-        } catch (error) { console.error('Cancellation error:', error); }
+            if (response.ok) {
+                fetchBookings();
+                setNotice({ variant: 'success', title: 'Booking cancelled', message: 'Your booking has been cancelled.' });
+            } else {
+                const data = await response.json();
+                setNotice({ variant: 'error', message: data.message || 'Failed to cancel' });
+            }
+        } catch (error) {
+            console.error('Cancellation error:', error);
+            setNotice({ variant: 'error', message: 'Could not cancel this booking. Try again.' });
+        }
     };
 
     const statusColor = (status) => {
@@ -83,6 +100,24 @@ const MyBookings = () => {
             `}</style>
 
             <Navbar />
+
+            <ConfirmModal
+                open={cancelBookingId != null}
+                title="Cancel booking?"
+                message="Are you sure you want to cancel this booking? This cannot be undone."
+                confirmText="Yes, cancel"
+                cancelText="Keep booking"
+                danger
+                onConfirm={confirmCancelBooking}
+                onCancel={() => setCancelBookingId(null)}
+            />
+            <NoticeModal
+                open={notice != null}
+                title={notice?.title}
+                message={notice?.message ?? ''}
+                variant={notice?.variant ?? 'info'}
+                onClose={() => setNotice(null)}
+            />
 
             <div style={{ padding: '48px 24px', position: 'relative' }}>
 

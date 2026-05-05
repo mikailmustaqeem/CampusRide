@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { NoticeModal } from '../components/ThemeModals';
 
 const EditRide = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [notice, setNotice] = useState(null);
   const [formData, setFormData] = useState({
     source: '',
     destination: '',
@@ -20,7 +22,7 @@ const EditRide = () => {
   const fetchRide = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(`http://localhost:5000/api/rides/${id}`, {
+      const response = await axios.get(`http://localhost:5001/api/rides/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFormData(response.data);
@@ -37,18 +39,33 @@ const EditRide = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.put(`http://localhost:5000/api/rides/${id}`, formData, {
+      await axios.put(`http://localhost:5001/api/rides/${id}`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Ride updated successfully');
-      navigate('/my-rides');
+      setNotice({
+        variant: 'success',
+        title: 'Ride updated',
+        message: 'Your changes were saved.',
+        navigateTo: '/my-rides',
+      });
     } catch (error) {
-      alert('Error updating ride');
+      setNotice({ variant: 'error', message: 'Could not update this ride. Check your details and try again.' });
     }
   };
 
   return (
     <div className="p-8 max-w-md mx-auto">
+      <NoticeModal
+        open={notice != null}
+        title={notice?.title}
+        message={notice?.message ?? ''}
+        variant={notice?.variant ?? 'info'}
+        onClose={() => {
+          const to = notice?.navigateTo;
+          setNotice(null);
+          if (to) navigate(to);
+        }}
+      />
       <h1 className="text-2xl font-bold mb-4">Edit Ride</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="text" name="source" placeholder="Source" value={formData.source} onChange={handleChange} className="w-full p-2 border rounded" required />

@@ -1,16 +1,18 @@
 // frontend/src/pages/Welcome.jsx
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
- //lets user navigate to another page on successful http response without doing anything
 import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { NoticeModal } from '../components/ThemeModals';
 
 function Welcome() {
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
     const navigate = useNavigate();
+    const [notice, setNotice] = useState(null);
 
     const onSubmit = async (data) => {
         try {
-            let response = await fetch('http://localhost:5000/api/auth/login', {
+            let response = await fetch('http://localhost:5001/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -23,22 +25,37 @@ function Welcome() {
             
                 localStorage.setItem("token", result.token);
                 localStorage.setItem("user", JSON.stringify(result.user));
-                alert('Login successful!');
-                navigate('/dashboard');
+                setNotice({
+                    variant: 'success',
+                    title: 'Welcome back',
+                    message: 'You are signed in.',
+                    navigateTo: '/dashboard',
+                });
             } else {
                 
-                alert(result.message || 'Login failed');
+                setNotice({ variant: 'error', message: result.message || 'Login failed' });
             }
 
         } catch (error) {
             console.error("Error", error);
-            alert('Failed to connect to server');
+            setNotice({ variant: 'error', message: 'Failed to connect to server' });
         }
     };
 
     return (
         <div className="flex min-h-screen bg-[#0e0c15]">
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap'); body { font-family: 'Sora', sans-serif; }`}</style>
+            <NoticeModal
+                open={notice != null}
+                title={notice?.title}
+                message={notice?.message ?? ''}
+                variant={notice?.variant ?? 'info'}
+                onClose={() => {
+                    const to = notice?.navigateTo;
+                    setNotice(null);
+                    if (to) navigate(to);
+                }}
+            />
 
             {/* LEFT PANEL */}
             <div className="w-1/2 flex flex-col justify-center px-16 py-20 relative overflow-hidden">

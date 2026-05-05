@@ -25,6 +25,24 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+// GET /api/notifications/unread-count — Badge in navbar (no row payload)
+router.get('/unread-count', auth, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const pool = getPool();
+        const result = await pool.request()
+            .input('UserID', sql.Int, userId)
+            .query(`SELECT COUNT(*) AS cnt
+                    FROM Notifications
+                    WHERE UserID = @UserID AND (IsRead = 0 OR IsRead IS NULL)`);
+        const unreadCount = Number(result.recordset[0]?.cnt ?? 0);
+        res.json({ success: true, unreadCount });
+    } catch (error) {
+        console.error('Unread count error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // PUT /api/notifications/read-all — Mark all as read
 router.put('/read-all', auth, async (req, res) => {
     try {

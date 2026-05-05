@@ -33,6 +33,44 @@ router.post('/', auth, async (req, res) => {
 
         const pool = getPool();
 
+        const rideInfo = await pool.request()
+            .input('RideID', sql.Int, rideId)
+            .query('SELECT Source, Destination, DriverID, Status FROM Rides WHERE RideID = @RideID');
+        const ride = rideInfo.recordset[0];
+
+        if (!ride) {
+            return res.status(404).json({ success: false, message: 'Ride not found' });
+        }
+
+        if (ride.Status === 'Cancelled') {
+            return res.status(400).json({ success: false, message: 'Cancelled rides cannot be reviewed' });
+        }
+        if (ride.Status !== 'Completed') {
+            return res.status(400).json({
+                success: false,
+                message: 'You can only review after the driver has marked the ride as completed.',
+            });
+        }
+
+        if (Number(revieweeId) !== Number(ride.DriverID)) {
+            return res.status(400).json({ success: false, message: 'Invalid driver for this ride' });
+        }
+
+        const bookingOk = await pool.request()
+            .input('RideID', sql.Int, rideId)
+            .input('PassengerID', sql.Int, reviewerId)
+            .query(`SELECT b.BookingID FROM Bookings b
+                    INNER JOIN Payments p ON p.BookingID = b.BookingID AND p.TransactionStatus = 'Completed'
+                    WHERE b.RideID = @RideID AND b.PassengerID = @PassengerID
+                    AND b.Status IN ('Confirmed', 'Completed')`);
+
+        if (bookingOk.recordset.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'You need a paid booking on this completed ride before you can leave a review',
+            });
+        }
+
         // Check if already reviewed
         const existing = await pool.request()
             .input('ReviewerID', sql.Int, reviewerId)
@@ -43,12 +81,6 @@ router.post('/', auth, async (req, res) => {
         if (existing.recordset.length > 0) {
             return res.status(400).json({ success: false, message: 'You have already reviewed this ride' });
         }
-
-        // Get ride info for notification
-        const rideInfo = await pool.request()
-            .input('RideID', sql.Int, rideId)
-            .query('SELECT Source, Destination, DriverID FROM Rides WHERE RideID = @RideID');
-        const ride = rideInfo.recordset[0];
 
         // Get reviewee name
         const revieweeInfo = await pool.request()
@@ -150,8 +182,12 @@ router.get('/bookings', auth, async (req, res) => {
                     JOIN Rides r ON b.RideID = r.RideID
                     JOIN Users u ON r.DriverID = u.UserID
                     WHERE b.PassengerID = @PassengerID
-                    AND b.Status = 'Confirmed'
-                    AND r.Status IN ('Completed', 'Active')
+                    AND b.Status IN ('Confirmed', 'Completed')
+                    AND r.Status = 'Completed'
+                    AND EXISTS (
+                        SELECT 1 FROM Payments p
+                        WHERE p.BookingID = b.BookingID AND p.TransactionStatus = 'Completed'
+                    )
                     AND NOT EXISTS (
                         SELECT 1 FROM Reviews rv
                         WHERE rv.ReviewerID = @PassengerID

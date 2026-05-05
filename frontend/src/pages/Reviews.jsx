@@ -13,6 +13,7 @@ function Reviews() {
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState('');
+    const [submitError, setSubmitError] = useState('');
     const token = localStorage.getItem('token');
 
     useEffect(() => { fetchAll(); }, []);
@@ -21,8 +22,8 @@ function Reviews() {
         setLoading(true);
         try {
             const [myRes, bookRes] = await Promise.all([
-                fetch('http://localhost:5000/api/reviews/my', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:5000/api/reviews/bookings', { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch('http://localhost:5001/api/reviews/my', { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch('http://localhost:5001/api/reviews/bookings', { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
             const myData = await myRes.json();
             const bookData = await bookRes.json();
@@ -35,8 +36,9 @@ function Reviews() {
     const handleSubmit = async () => {
         if (!selected) return;
         setSubmitting(true);
+        setSubmitError('');
         try {
-            const res = await fetch('http://localhost:5000/api/reviews', {
+            const res = await fetch('http://localhost:5001/api/reviews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ revieweeId: selected.DriverID, rideId: selected.RideID, rating, comment })
@@ -47,8 +49,10 @@ function Reviews() {
                 setSelected(null); setComment(''); setRating(5);
                 fetchAll();
                 setTimeout(() => setSuccess(''), 3000);
+            } else {
+                setSubmitError(data.message || 'Could not submit review.');
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error(e); setSubmitError('Failed to connect to server.'); }
         finally { setSubmitting(false); }
     };
 
@@ -89,13 +93,13 @@ function Reviews() {
 
                 {/* Tabs */}
                 <div className="flex gap-2 mb-6">
-                    <button style={tabStyle('give')} onClick={() => setTab('give')}>
+                    <button style={tabStyle('give')} onClick={() => { setTab('give'); setSubmitError(''); }}>
                         Rate a Driver {reviewable.length > 0 && `(${reviewable.length})`}
                     </button>
-                    <button style={tabStyle('given')} onClick={() => setTab('given')}>
+                    <button style={tabStyle('given')} onClick={() => { setTab('given'); setSubmitError(''); }}>
                         Reviews Given
                     </button>
-                    <button style={tabStyle('received')} onClick={() => setTab('received')}>
+                    <button style={tabStyle('received')} onClick={() => { setTab('received'); setSubmitError(''); }}>
                         Reviews Received
                     </button>
                 </div>
@@ -104,6 +108,12 @@ function Reviews() {
                     <div className="mb-4 p-4 rounded-2xl text-sm"
                          style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34d399' }}>
                         ✅ {success}
+                    </div>
+                )}
+                {submitError && (
+                    <div className="mb-4 p-4 rounded-2xl text-sm"
+                         style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}>
+                        {submitError}
                     </div>
                 )}
 
@@ -117,7 +127,7 @@ function Reviews() {
                                 {reviewable.length === 0 ? (
                                     <div className="rounded-2xl p-8 text-center text-zinc-500 text-sm"
                                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                        No rides to review yet. Book and complete a ride first.
+                                        No rides to review yet. Pay for your booking first; after your driver marks the ride completed you can rate them here.
                                     </div>
                                 ) : (
                                     reviewable.map(b => (

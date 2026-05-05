@@ -17,7 +17,7 @@ function RideDetails() {
     useEffect(() => {
         const fetchRideDetails = async () => {
             try {
-                const res = await fetch(`http://localhost:5000/api/rides/${id}`, {
+                const res = await fetch(`http://localhost:5001/api/rides/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
